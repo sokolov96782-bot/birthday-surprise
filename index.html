@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Сюрприз на День Рождения — Telegram Mini App</title>
+    
+    <!-- Telegram Web App SDK (ОБЯЗАТЕЛЬНО ДЛЯ РАБОТЫ В TELEGRAM) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Russo+One&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-grad-1: #0f051d;
+            --bg-grad-2: #290b42;
+            --bg-grad-3: #4c115b;
+            --accent-primary: #ff2a85;
+            --accent-secondary: #00f5d4;
+            --card-bg: rgba(255, 255, 255, 0.09);
+            --card-border: rgba(255, 255, 255, 0.18);
+            --glow-color: rgba(255, 42, 133, 0.55);
+        }
+
+        [data-theme="neon"] {
+            --bg-grad-1: #0f051d;
+            --bg-grad-2: #290b42;
+            --bg-grad-3: #4c115b;
+            --accent-primary: #ff2a85;
+            --accent-secondary: #00f5d4;
+            --glow-color: rgba(255, 42, 133, 0.55);
+        }
+
+        [data-theme="space"] {
+            --bg-grad-1: #03071e;
+            --bg-grad-2: #0a1931;
+            --bg-grad-3: #150050;
+            --accent-primary: #38bdf8;
+            --accent-secondary: #a855f7;
+            --glow-color: rgba(56, 189, 248, 0.55);
+        }
+
+        [data-theme="gold"] {
+            --bg-grad-1: #140f07;
+            --bg-grad-2: #2b1d03;
+            --bg-grad-3: #422905;
+            --accent-primary: #fbbf24;
+            --accent-secondary: #f97316;
+            --glow-color: rgba(251, 191, 36, 0.55);
+        }
+
+        [data-theme="cyberpunk"] {
+            --bg-grad-1: #090d16;
+            --bg-grad-2: #1f0826;
+            --bg-grad-3: #052e2b;
+            --accent-primary: #facc15;
+            --accent-secondary: #06b6d4;
+            --glow-color: rgba(250, 204, 21, 0.55);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-grad-1), var(--bg-grad-2), var(--bg-grad-3));
+            background-size: 300% 300%;
+            animation: gradientBG 12s ease infinite;
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .font-display {
+            font-family: 'Russo One', sans-serif;
+            letter-spacing: 0.03em;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Glassmorphism карточки */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.45), 0 0 20px var(--glow-color);
+        }
+
+        .digit-card {
+            background: rgba(10, 10, 22, 0.68);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 2px 12px rgba(255, 255, 255, 0.08), 0 8px 20px rgba(0, 0, 0, 0.4);
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.25s ease;
+        }
+
+        .digit-pop {
+            transform: scale(1.09);
+            border-color: var(--accent-secondary);
+        }
+
+        /* Анимация тряски подарка */
+        @keyframes giftShake {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            15% { transform: rotate(-14deg) scale(1.12); }
+            30% { transform: rotate(14deg) scale(1.15); }
+            45% { transform: rotate(-12deg) scale(1.12); }
+            60% { transform: rotate(12deg) scale(1.14); }
+            75% { transform: rotate(-6deg) scale(1.08); }
+        }
+
+        .shake-active {
+            animation: giftShake 0.55s ease-in-out;
+        }
+
+        /* Плавающая анимация подарка */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-7px); }
+        }
+
+        .float-anim {
+            animation: floatSlow 3.2s ease-in-out infinite;
+        }
+
+        /* Предвзрывная детонация (последние 3 секунды) */
+        @keyframes chargeRumble {
+            0%, 100% { transform: translate(0, 0) scale(1.02); filter: brightness(1.2); }
+            20% { transform: translate(-4px, 3px) scale(1.07); filter: brightness(1.5) drop-shadow(0 0 18px #ff2a85); }
+            40% { transform: translate(4px, -4px) scale(1.04); filter: brightness(1.3); }
+            60% { transform: translate(-5px, -2px) scale(1.09); filter: brightness(1.7) drop-shadow(0 0 25px #fbbf24); }
+            80% { transform: translate(4px, 4px) scale(1.06); filter: brightness(1.4); }
+        }
+
+        .charging-rumble {
+            animation: chargeRumble 0.16s infinite !important;
+            border-color: #fbbf24 !important;
+        }
+
+        /* Экранная тряска при взрыве */
+        @keyframes screenExplosionShake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            10% { transform: translate(-14px, -10px) rotate(-1.8deg); }
+            20% { transform: translate(14px, 8px) rotate(1.8deg); }
+            30% { transform: translate(-12px, 12px) rotate(-1.4deg); }
+            40% { transform: translate(12px, -8px) rotate(1.4deg); }
+            50% { transform: translate(-8px, 6px) rotate(-1deg); }
+            60% { transform: translate(8px, -6px) rotate(1deg); }
+            80% { transform: translate(-4px, 3px) rotate(-0.4deg); }
+        }
+
+        .screen-shake-active {
+            animation: screenExplosionShake 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+
+        /* Ударная волна (Shockwave) */
+        @keyframes shockwaveExpand {
+            0% {
+                transform: scale(0.1);
+                opacity: 1;
+                border-width: 24px;
+            }
+            70% {
+                opacity: 0.7;
+                border-width: 6px;
+            }
+            100% {
+                transform: scale(5.8);
+                opacity: 0;
+                border-width: 1px;
+            }
+        }
+
+        .shockwave-ring {
+            position: fixed;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 18px solid #fbbf24;
+            box-shadow: 0 0 55px #ff2a85, inset 0 0 35px #00f5d4;
+            pointer-events: none;
+            z-index: 60;
+            animation: shockwaveExpand 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Вспышка экрана */
+        @keyframes screenFlash {
+            0% { opacity: 0.92; }
+            100% { opacity: 0; }
+        }
+
+        .flash-screen {
+            animation: screenFlash 0.55s ease-out forwards;
+            pointer-events: none;
+            z-index: 59;
+        }
+
+        /* Разлет карточек таймера при взрыве */
+        .shatter-piece {
+            transition: transform 0.58s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.52s ease;
+        }
+
+        .shatter-active:nth-child(1) { transform: translate(-90px, -80px) rotate(-28deg) scale(0.4); opacity: 0; }
+        .shatter-active:nth-child(2) { transform: translate(-35px, -110px) rotate(22deg) scale(0.4); opacity: 0; }
+        .shatter-active:nth-child(3) { transform: translate(45px, -105px) rotate(-18deg) scale(0.4); opacity: 0; }
+        .shatter-active:nth-child(4) { transform: translate(95px, -75px) rotate(32deg) scale(0.4); opacity: 0; }
+
+        /* Появление экрана праздника */
+        @keyframes celebrationReveal {
+            0% { transform: scale(0.65); opacity: 0; }
+            70% { transform: scale(1.04); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .celebration-reveal-anim {
+            animation: celebrationReveal 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* Огоньки свечей на торте */
+        @keyframes flameFlicker {
+            0%, 100% { transform: scale(1) rotate(-2deg); opacity: 1; }
+            50% { transform: scale(1.18, 0.92) rotate(3deg); opacity: 0.88; }
+        }
+
+        .candle-flame {
+            animation: flameFlicker 0.35s infinite alternate;
+            transform-origin: bottom center;
+        }
+
+        /* Кнопки с градиентом */
+        .btn-glow {
+            background: linear-gradient(90deg, var(--accent-primary), #9333ea);
+            box-shadow: 0 6px 20px -3px var(--glow-color);
+            transition: all 0.2s ease;
+        }
+        .btn-glow:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+        .btn-glow:active {
+            transform: translateY(1px) scale(0.98);
+        }
+    </style>
+</head>
+<body data-theme="neon" class="relative select-none flex flex-col items-center justify-between p-3 sm:p-5">
+
+    <!-- ОРИГИНАЛЬНЫЙ АУДИОФАЙЛ БЕЗ ИЗМЕНЕНИЙ И ОБРАБОТКИ -->
+    <audio id="freddyAudio" src="freddy-beatbox.mp3" preload="auto"></audio>
+
+    <!-- Canvas для 360-градусного мини-взрыва (искры, дым, эмодзи) -->
+    <canvas id="explosionCanvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+    <!-- Контейнер для ударной волны, вспышки и комикс-надписей -->
+    <div id="explosionOverlay" class="fixed inset-0 pointer-events-none z-50 overflow-hidden"></div>
+
+    <!-- Верхняя панель навигации (Шапка Telegram Mini App) -->
+    <header class="w-full max-w-md flex items-center justify-between gap-2 mb-3 z-20">
+        <div class="flex items-center gap-2 bg-black/35 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/15">
+            <span class="text-lg animate-bounce">🎉</span>
+            <div>
+                <p class="text-[10px] uppercase tracking-wider text-white/60 font-bold leading-none">Telegram Surprise</p>
+                <p class="text-xs font-extrabold text-white leading-tight">Днюха-Таймер 3000</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+            <!-- Вкл/Выкл звук -->
+            <button id="soundToggleBtn" onclick="toggleSoundMute()" title="Вкл/Выкл звук"
+                class="p-2.5 rounded-2xl bg-black/35 hover:bg-white/15 border border-white/15 text-sm transition active:scale-95">
+                🔊
+            </button>
+            <!-- Открыть настройки -->
+            <button onclick="toggleSettingsModal(true)"
+                class="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/25 text-xs font-bold transition active:scale-95 shadow-lg">
+                <span>⚙️</span>
+                <span id="settingsBtnLabel">Настроить</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ================= ГЛАВНЫЙ ЭКРАН ОБРАТНОГО ОТСЧЕТА ================= -->
+    <main id="countdownScreen" class="w-full max-w-md glass-card rounded-3xl p-4 sm:p-6 flex flex-col items-center text-center relative z-10 my-auto">
+
+        <!-- Панель быстрой подгрузки оригинального файла freddy-beatbox.mp3 (Drag & Drop / Клик) -->
+        <div id="audioDropZone"
+            onclick="document.getElementById('directMp3Input').click()"
+            ondragover="handleAudioDragOver(event)"
+            ondragleave="handleAudioDragLeave(event)"
+            ondrop="handleAudioDrop(event)"
+            class="w-full mb-3 p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-pink-500/20 to-purple-500/20 hover:from-amber-500/30 hover:to-pink-500/30 border border-dashed border-amber-300/60 cursor-pointer transition flex items-center justify-between gap-2 text-left">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span id="audioStatusIcon" class="text-xl shrink-0">🎵</span>
+                <div class="min-w-0">
+                    <p id="audioStatusTitle" class="text-[11px] sm:text-xs font-extrabold text-amber-200 truncate">
+                        Прикрепить оригинальный freddy-beatbox.mp3 (без изменений)
+                    </p>
+                    <p id="audioStatusSub" class="text-[10px] text-white/75 truncate">
+                        Нажми или перетащи MP3 сюда — сохранится 1-в-1 без обработки
+                    </p>
+                </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-xl bg-amber-400/25 border border-amber-300/50 text-[10px] font-extrabold text-amber-100 shrink-0">
+                Выбрать MP3
+            </span>
+            <input id="directMp3Input" type="file" accept="audio/*,.mp3" class="hidden" onchange="handleDirectMp3Select(event)">
+        </div>
+
+        <!-- Бейдж получателя -->
+        <div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-semibold mb-2">
+            <span>👑 Сюрприз для:</span>
+            <span id="displayRecipientName" class="font-extrabold text-amber-300 underline decoration-pink-500/60">Бро</span>
+        </div>
+
+        <h1 class="font-display text-xl sm:text-2xl uppercase tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-white via-pink-200 to-amber-200 mb-1">
+            До Дня Рождения осталось
+        </h1>
+        <p id="targetDateFormatted" class="text-xs text-white/65 mb-4 font-medium">
+            Дата Х: загрузка...
+        </p>
+
+        <!-- Сетка карточек таймера (Дни, Часы, Минуты, Секунды) -->
+        <div id="timerGrid" class="grid grid-cols-4 gap-2 sm:gap-3 w-full mb-4">
+            <div class="digit-card shatter-piece rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-center">
+                <span id="daysVal" class="font-display text-2xl sm:text-4xl text-white leading-none">00</span>
+                <span id="daysLabel" class="text-[10px] sm:text-xs uppercase tracking-wider text-white/65 mt-1 font-bold">Дней</span>
+            </div>
+            <div class="digit-card shatter-piece rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-center">
+                <span id="hoursVal" class="font-display text-2xl sm:text-4xl text-white leading-none">00</span>
+                <span id="hoursLabel" class="text-[10px] sm:text-xs uppercase tracking-wider text-white/65 mt-1 font-bold">Часов</span>
+            </div>
+            <div class="digit-card shatter-piece rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-center">
+                <span id="minutesVal" class="font-display text-2xl sm:text-4xl text-white leading-none">00</span>
+                <span id="minutesLabel" class="text-[10px] sm:text-xs uppercase tracking-wider text-white/65 mt-1 font-bold">Минут</span>
+            </div>
+            <div id="secondsCard" class="digit-card shatter-piece rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-center border-pink-500/40">
+                <span id="secondsVal" class="font-display text-2xl sm:text-4xl text-amber-300 leading-none">00</span>
+                <span id="secondsLabel" class="text-[10px] sm:text-xs uppercase tracking-wider text-pink-200/80 mt-1 font-bold">Секунд</span>
+            </div>
+        </div>
+
+        <!-- Шкала прогресса «Загрузка нового уровня жизни» -->
+        <div class="w-full bg-black/35 rounded-2xl p-3 border border-white/10 mb-4 text-left">
+            <div class="flex justify-between items-center text-xs mb-1.5">
+                <span class="font-bold text-white/85 flex items-center gap-1.5">
+                    <span>⚡</span>
+                    <span>Загрузка нового уровня:</span>
+                </span>
+                <span id="progressPercentText" class="font-extrabold text-amber-300">94%</span>
+            </div>
+            <div class="w-full h-2.5 bg-white/10 rounded-full overflow-hidden p-0.5">
+                <div id="progressBarFill" class="h-full rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 transition-all duration-500" style="width: 94%;"></div>
+            </div>
+            <p id="funnyStatusText" class="text-[11px] text-white/65 mt-1.5 italic">
+                📦 Упаковываем секретный подарок и настраиваем битбокс Фредди...
+            </p>
+        </div>
+
+        <!-- Интерактивная зона подарка-бомбочки -->
+        <div id="giftZoneCard" onclick="shakeGiftBox()"
+            class="w-full rounded-2xl bg-gradient-to-b from-white/10 to-black/35 border border-white/20 p-4 mb-4 cursor-pointer transition hover:border-pink-400/60 relative overflow-hidden group">
+            <div class="flex flex-col items-center">
+                <div id="giftEmojiIcon" class="text-5xl sm:text-6xl float-anim select-none mb-1.5 filter drop-shadow-[0_8px_16px_rgba(255,42,133,0.5)]">
+                    🎁
+                </div>
+                <p class="text-xs font-extrabold uppercase tracking-wider text-amber-300">
+                    Нажми на коробку, чтобы потрясти!
+                </p>
+                <p id="giftHintBubble" class="text-xs text-white/80 mt-1 min-h-[1.25rem] font-medium px-2">
+                    Внутри что-то тикает и поёт «Хор-хор-хор»... 🐻🎤
+                </p>
+            </div>
+        </div>
+
+        <!-- Основные интерактивные кнопки -->
+        <div class="grid grid-cols-2 gap-2.5 w-full mb-3">
+            <button onclick="shakeGiftBox()"
+                class="py-2.5 px-3 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/25 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95">
+                <span>🎁</span>
+                <span>Потрясти (<span id="shakeCounter">0</span>)</span>
+            </button>
+            <button onclick="launchFireworksManual()"
+                class="py-2.5 px-3 rounded-2xl btn-glow font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+                <span>🎉</span>
+                <span>Салют!</span>
+            </button>
+        </div>
+
+        <!-- Панель мемных звуков и быстрого теста взрыва -->
+        <div class="w-full bg-black/45 rounded-2xl p-3 border border-white/15">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-pink-300 flex items-center gap-1">
+                    <span>🎵</span> Оригинальный звук и тест взрыва
+                </span>
+                <span id="activePresetBadge"
+                    class="text-[10px] font-bold bg-emerald-500/25 border border-emerald-400/50 text-emerald-200 px-2 py-0.5 rounded-full">
+                    🔊 100% Оригинал (1.0x)
+                </span>
+            </div>
+
+            <!-- Кнопки прослушивания оригинального файла -->
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <button onclick="playOriginalFreddyAudio(true)"
+                    class="py-2 px-2.5 rounded-xl bg-amber-500/25 hover:bg-amber-500/40 border border-amber-400/50 text-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95">
+                    <span>▶️</span>
+                    <span>Прослушать оригинал</span>
+                </button>
+                <button onclick="stopOriginalFreddyAudio()"
+                    class="py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white/85 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95">
+                    <span>⏹</span>
+                    <span>Стоп звук</span>
+                </button>
+            </div>
+
+            <!-- Кнопки теста мини-взрыва и отсчета последних 5 секунд -->
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="triggerExplosionSequence()"
+                    class="py-2 px-2.5 rounded-xl bg-gradient-to-r from-pink-600/80 to-orange-500/80 hover:from-pink-500 hover:to-orange-400 border border-white/25 text-white font-extrabold text-xs flex items-center justify-center gap-1 transition active:scale-95 shadow">
+                    <span>💥</span>
+                    <span>Тест мини-взрыва (00:00)</span>
+                </button>
+                <button onclick="setQuickCountdownSeconds(5)"
+                    class="py-2 px-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/35 border border-cyan-400/40 text-cyan-200 font-bold text-xs flex items-center justify-center gap-1 transition active:scale-95">
+                    <span>⏱</span>
+                    <span>Финал 5 сек</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= ЭКРАН ПРАЗДНИКА (ПОСЛЕ МИНИ-ВЗРЫВА В 00:00) ================= -->
+    <section id="birthdayCelebrationScreen" class="hidden w-full max-w-md glass-card rounded-3xl p-5 sm:p-6 flex-col items-center text-center relative z-10 my-auto">
+
+        <div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-400/20 border border-amber-300/40 text-amber-200 text-xs font-extrabold mb-2">
+            <span>💥 МИНИ-ВЗРЫВ ПРОИЗОШЕЛ!</span>
+        </div>
+
+        <h2 class="font-display text-2xl sm:text-3xl uppercase bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-pink-400 to-cyan-300 mb-1">
+            С Днём Рождения, <span id="celebrationName">Бро</span>! 🥳
+        </h2>
+        <p class="text-xs text-white/75 mb-4">
+            Загадай желание и нажми на каждую свечку на торте, чтобы задуть их!
+        </p>
+
+        <!-- Интерактивный торт с 5 горящими свечами -->
+        <div class="w-full bg-black/40 rounded-2xl p-4 border border-white/15 mb-4 flex flex-col items-center">
+            <div class="flex items-center justify-between w-full text-xs text-white/70 mb-2 px-1">
+                <span>🎂 Праздничный торт:</span>
+                <span id="candlesStatusBadge" class="font-bold text-amber-300">Горит свечей: 5 / 5</span>
+            </div>
+
+            <!-- Свечи -->
+            <div class="flex items-end justify-center gap-4 sm:gap-6 mt-2 mb-1 z-10">
+                <button onclick="blowOutCandle(0)" class="candle-btn flex flex-col items-center group focus:outline-none" title="Задуть свечу 1">
+                    <div id="flame-0" class="candle-flame text-2xl sm:text-3xl filter drop-shadow-[0_0_10px_#fbbf24] transition-all">🔥</div>
+                    <div class="w-3.5 h-10 bg-gradient-to-b from-pink-400 to-pink-600 rounded-t-md border border-white/40 shadow"></div>
+                </button>
+                <button onclick="blowOutCandle(1)" class="candle-btn flex flex-col items-center group focus:outline-none" title="Задуть свечу 2">
+                    <div id="flame-1" class="candle-flame text-2xl sm:text-3xl filter drop-shadow-[0_0_10px_#fbbf24] transition-all">🔥</div>
+                    <div class="w-3.5 h-12 bg-gradient-to-b from-cyan-400 to-blue-600 rounded-t-md border border-white/40 shadow"></div>
+                </button>
+                <button onclick="blowOutCandle(2)" class="candle-btn flex flex-col items-center group focus:outline-none" title="Задуть свечу 3">
+                    <div id="flame-2" class="candle-flame text-2xl sm:text-3xl filter drop-shadow-[0_0_10px_#fbbf24] transition-all">🔥</div>
+                    <div class="w-3.5 h-14 bg-gradient-to-b from-amber-300 to-orange-500 rounded-t-md border border-white/40 shadow"></div>
+                </button>
+                <button onclick="blowOutCandle(3)" class="candle-btn flex flex-col items-center group focus:outline-none" title="Задуть свечу 4">
+                    <div id="flame-3" class="candle-flame text-2xl sm:text-3xl filter drop-shadow-[0_0_10px_#fbbf24] transition-all">🔥</div>
+                    <div class="w-3.5 h-12 bg-gradient-to-b from-purple-400 to-purple-700 rounded-t-md border border-white/40 shadow"></div>
+                </button>
+                <button onclick="blowOutCandle(4)" class="candle-btn flex flex-col items-center group focus:outline-none" title="Задуть свечу 5">
+                    <div id="flame-4" class="candle-flame text-2xl sm:text-3xl filter drop-shadow-[0_0_10px_#fbbf24] transition-all">🔥</div>
+                    <div class="w-3.5 h-10 bg-gradient-to-b from-emerald-400 to-teal-600 rounded-t-md border border-white/40 shadow"></div>
+                </button>
+            </div>
+
+            <!-- Коржи торта -->
+            <div class="w-56 sm:w-64 h-7 bg-gradient-to-r from-pink-300 via-white to-pink-300 rounded-t-xl border-2 border-pink-400 shadow-inner"></div>
+            <div class="w-60 sm:w-72 h-10 bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 rounded-b-2xl border-2 border-amber-400/60 shadow-lg flex items-center justify-around px-3">
+                <span class="text-xs">🍓</span><span class="text-xs">✨</span><span class="text-xs">🍒</span><span class="text-xs">✨</span><span class="text-xs">🍓</span>
+            </div>
+        </div>
+
+        <!-- Секретное поздравление -->
+        <div class="w-full bg-gradient-to-br from-white/15 to-white/5 rounded-2xl p-4 border border-white/25 mb-4 text-left shadow-inner">
+            <p class="text-[11px] font-extrabold uppercase tracking-wider text-amber-300 mb-1 flex items-center gap-1">
+                <span>💌</span> Секретное послание для тебя:
+            </p>
+            <p id="secretMessageDisplay" class="text-xs sm:text-sm text-white/95 leading-relaxed font-medium whitespace-pre-line">
+                Желаю тебе космического успеха, бесконечного заряда энергии, верных друзей рядом и чтобы все твои самые смелые мечты сбывались со скоростью света! Твой подарок уже ждёт тебя! 🚀🔥🎁
+            </p>
+        </div>
+
+        <!-- Кнопки повтора звуков и возврата -->
+        <div class="grid grid-cols-2 gap-2 w-full mb-2">
+            <button onclick="playOriginalFreddyAudio(true)"
+                class="py-2.5 px-3 rounded-xl bg-amber-500/25 hover:bg-amber-500/40 border border-amber-400/50 text-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                <span>▶️</span>
+                <span>Включить оригинал</span>
+            </button>
+            <button onclick="triggerExplosionSequence()"
+                class="py-2.5 px-3 rounded-xl btn-glow font-bold text-xs flex items-center justify-center gap-1.5">
+                <span>💥</span>
+                <span>Повторить взрыв!</span>
+            </button>
+        </div>
+        <button onclick="returnToCountdown()"
+            class="w-full py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white/80 transition">
+            ⬅ Вернуться к таймеру
+        </button>
+    </section>
+
+    <!-- Нижняя панель отправки другу в Telegram -->
+    <footer class="w-full max-w-md mt-3 z-20 flex flex-col gap-2">
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="shareToTelegram()"
+                class="py-3 px-4 rounded-2xl bg-[#229ED9] hover:bg-[#1e8ec4] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition active:scale-95">
+                <span>✈️</span>
+                <span>Отправить в Telegram</span>
+            </button>
+            <button onclick="copySurpriseLink()"
+                class="py-3 px-4 rounded-2xl bg-black/40 hover:bg-white/15 border border-white/20 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition active:scale-95">
+                <span>🔗</span>
+                <span id="copyLinkBtnText">Скопировать ссылку</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- ================= МОДАЛЬНОЕ ОКНО КАСТОМИЗАЦИИ И НАСТРОЕК ================= -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 overflow-y-auto">
+        <div class="w-full max-w-md glass-card rounded-3xl p-5 border border-white/25 text-left my-auto max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-display text-lg uppercase text-white flex items-center gap-2">
+                    <span>⚙️</span> Настройка сюрприза
+                </h3>
+                <button onclick="toggleSettingsModal(false)" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-sm font-bold">
+                    ✕
+                </button>
+            </div>
+
+            <div class="space-y-3.5">
+                <!-- Имя именинника -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-white/75 mb-1">Имя друга / именинника</label>
+                    <input id="inputName" type="text" placeholder="Например: Санёк"
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-black/45 border border-white/20 text-white text-sm focus:outline-none focus:border-pink-400">
+                </div>
+
+                <!-- Дата и время -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-white/75 mb-1">Дата и время Дня Рождения</label>
+                    <input id="inputDate" type="datetime-local"
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-black/45 border border-white/20 text-white text-sm focus:outline-none focus:border-pink-400 mb-2">
+                    <div class="flex flex-wrap gap-1.5">
+                        <button type="button" onclick="setQuickModalTime(10)" class="px-2.5 py-1 rounded-lg bg-pink-500/25 hover:bg-pink-500/40 border border-pink-400/40 text-xs font-bold text-pink-200">
+                            ⚡ +10 сек (для теста)
+                        </button>
+                        <button type="button" onclick="setQuickModalTime(3600)" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold">
+                            +1 час
+                        </button>
+                        <button type="button" onclick="setQuickModalTime(86400)" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold">
+                            Завтра
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Выбор озвучки мини-взрыва -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-white/75 mb-1.5">Режим воспроизведения звука при взрыве</label>
+                    <div class="grid grid-cols-1 gap-1.5">
+                        <button type="button" onclick="selectSoundPreset('freddy_original')" id="soundPresetBtn-freddy_original"
+                            class="sound-preset-btn flex items-center justify-between p-2.5 rounded-xl border border-pink-500 bg-white/20 text-left text-xs font-bold transition">
+                            <span class="flex items-center gap-2">
+                                <span class="text-base">🐻🎤</span>
+                                <span>Оригинальный freddy-beatbox.mp3 (100% без изменений)</span>
+                            </span>
+                            <span class="text-[10px] bg-pink-500 text-white px-2 py-0.5 rounded-full">1.0x</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Оригинальный аудиофайл freddy-beatbox.mp3 -->
+                <div class="bg-black/35 p-3.5 rounded-2xl border border-amber-400/40 space-y-2.5">
+                    <p class="text-xs font-extrabold text-amber-300 flex items-center gap-1.5">
+                        <span>🎵</span> Оригинальный файл freddy-beatbox.mp3 (без изменений):
+                    </p>
+                    <p class="text-[11px] text-white/75 leading-relaxed">
+                        Файл проигрывается напрямую через HTML5 Audio (<code class="text-pink-300">playbackRate = 1.0</code>, без синтезатора и без фильтров).
+                    </p>
+                    <div>
+                        <span class="text-white/75 text-[11px] block mb-1">1. Загрузить ваш файл с устройства (сохранится в браузере):</span>
+                        <input type="file" accept="audio/*,.mp3" onchange="handleDirectMp3Select(event)"
+                            class="w-full text-[11px] text-white/85 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-amber-500/30 file:text-amber-200 hover:file:bg-amber-500/50">
+                    </div>
+                    <div>
+                        <span class="text-white/75 text-[11px] block mb-1">2. Или прямая ссылка на MP3 (для отправки другу через <code class="text-cyan-300">?audio=...</code>):</span>
+                        <input id="inputAudioUrl" type="url" placeholder="https://example.com/freddy-beatbox.mp3"
+                            class="w-full px-3 py-2 rounded-xl bg-black/45 border border-white/20 text-white text-xs focus:outline-none focus:border-amber-400">
+                    </div>
+                </div>
+
+                <!-- Секретное поздравление -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-white/75 mb-1">Секретное поздравление (откроется после 00:00)</label>
+                    <textarea id="inputMessage" rows="3"
+                        class="w-full px-3.5 py-2 rounded-xl bg-black/45 border border-white/20 text-white text-xs sm:text-sm focus:outline-none focus:border-pink-400"></textarea>
+                </div>
+
+                <!-- Цветовая тема -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-white/75 mb-1.5">Цветовая тема</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="selectTheme('neon')" id="themeBtn-neon"
+                            class="theme-option-btn p-2 rounded-xl border border-pink-500 bg-white/20 text-xs font-bold flex items-center gap-1.5">
+                            <span>🦄</span> Неоновая туса
+                        </button>
+                        <button type="button" onclick="selectTheme('space')" id="themeBtn-space"
+                            class="theme-option-btn p-2 rounded-xl border border-white/20 bg-black/30 text-xs font-bold flex items-center gap-1.5">
+                            <span>🌌</span> Глубокий космос
+                        </button>
+                        <button type="button" onclick="selectTheme('gold')" id="themeBtn-gold"
+                            class="theme-option-btn p-2 rounded-xl border border-white/20 bg-black/30 text-xs font-bold flex items-center gap-1.5">
+                            <span>👑</span> Золотой VIP
+                        </button>
+                        <button type="button" onclick="selectTheme('cyberpunk')" id="themeBtn-cyberpunk"
+                            class="theme-option-btn p-2 rounded-xl border border-white/20 bg-black/30 text-xs font-bold flex items-center gap-1.5">
+                            <span>⚡</span> Киберпанк
+                        </button>
+                    </div>
+                </div>
+
+                <button type="button" onclick="saveSettingsFromModal()"
+                    class="w-full py-3 rounded-2xl btn-glow font-extrabold text-sm uppercase tracking-wider mt-2">
+                    ✅ Сохранить и обновить виджет
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомление-тост (вместо alert) -->
+    <div id="toastNotification" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-3">
+        <div class="px-4 py-2.5 rounded-2xl bg-black/85 backdrop-blur-md border border-pink-400/50 text-white text-xs font-bold shadow-2xl flex items-center gap-2">
+            <span id="toastIcon">✨</span>
+            <span id="toastText">Сохранено!</span>
+        </div>
+    </div>
+
+    <script>
+        // ================= СОСТОЯНИЕ ПРИЛОЖЕНИЯ =================
+        const STORAGE_AUDIO_KEY = 'birthday_widget_exact_freddy_mp3_v1';
+        const STORAGE_AUDIO_NAME_KEY = 'birthday_widget_exact_freddy_name_v1';
+
+        const state = {
+            name: 'Бро',
+            targetDate: new Date(Date.now() + 1000 * 60 * 60 * 14 + 1000 * 60 * 28).toISOString(),
+            message: 'Желаю тебе космического успеха, бесконечного заряда энергии, верных друзей рядом и чтобы все твои самые смелые мечты сбывались со скоростью света! Твой подарок уже ждёт тебя! 🚀🔥🎁',
+            theme: 'neon',
+            audioUrl: '',
+            soundEnabled: true,
+            celebrationTriggered: false,
+            explosionInProgress: false,
+            shakeCount: 0,
+            candlesBlown: [false, false, false, false, false],
+            hasCustomLoadedAudio: false
+        };
+
+        // ================= ОРИГИНАЛЬНЫЙ АУДИОФАЙЛ БЕЗ ИЗМЕНЕНИЙ =================
+        function getFreddyAudioElement() {
+            return document.getElementById('freddyAudio');
+        }
+
+        function markAudioLoadedBadge(fileName) {
+            state.hasCustomLoadedAudio = true;
+            const dropZone = document.getElementById('audioDropZone');
+            const icon = document.getElementById('audioStatusIcon');
+            const title = document.getElementById('audioStatusTitle');
+            const sub = document.getElementById('audioStatusSub');
+
+            if (dropZone) {
+                dropZone.classList.remove('border-amber-300/60', 'from-amber-500/20');
+                dropZone.classList.add('border-emerald-400/80', 'from-emerald-500/25', 'to-teal-500/20');
+            }
+            if (icon) icon.textContent = '✅';
+            if (title) {
+                title.textContent = 'Оригинальный файл загружен и сохранен (без изменений)';
+                title.classList.remove('text-amber-200');
+                title.classList.add('text-emerald-200');
+            }
+            if (sub) {
+                sub.textContent = `Файл: ${fileName || 'freddy-beatbox.mp3'} • 100% оригинал (playbackRate = 1.0)`;
+            }
+        }
+
+        // Инициализация аудио: проверяем URL-параметр ?audio=, затем localStorage, затем локальный freddy-beatbox.mp3
+        function initOriginalAudioSource() {
+            const audioEl = getFreddyAudioElement();
+            if (!audioEl) return;
+
+            // Гарантируем отсутствие любых искажений скорости или высоты тона
+            audioEl.playbackRate = 1.0;
+            audioEl.defaultPlaybackRate = 1.0;
+            audioEl.volume = 1.0;
+            if ('preservesPitch' in audioEl) audioEl.preservesPitch = true;
+            if ('mozPreservesPitch' in audioEl) audioEl.mozPreservesPitch = true;
+            if ('webkitPreservesPitch' in audioEl) audioEl.webkitPreservesPitch = true;
+
+            // 1. Если передана прямая ссылка в URL параметре ?audio=...
+            if (state.audioUrl) {
+                audioEl.src = state.audioUrl;
+                audioEl.load();
+                markAudioLoadedBadge(state.audioUrl.split('/').pop() || 'freddy-beatbox.mp3');
+                return;
+            }
+
+            // 2. Если пользователь уже прикреплял файл и он сохранен в localStorage
+            try {
+                const savedDataUrl = localStorage.getItem(STORAGE_AUDIO_KEY);
+                const savedName = localStorage.getItem(STORAGE_AUDIO_NAME_KEY) || 'freddy-beatbox.mp3';
+                if (savedDataUrl && savedDataUrl.startsWith('data:audio')) {
+                    audioEl.src = savedDataUrl;
+                    audioEl.load();
+                    markAudioLoadedBadge(savedName);
+                    return;
+                }
+            } catch (e) {}
+
+            // 3. Проверяем доступность локального файла freddy-beatbox.mp3 рядом с HTML
+            audioEl.addEventListener('canplaythrough', function onCanPlay() {
+                if (!state.hasCustomLoadedAudio) {
+                    markAudioLoadedBadge('freddy-beatbox.mp3');
+                }
+                audioEl.removeEventListener('canplaythrough', onCanPlay);
+            });
+        }
+
+        // Обработка выбора файла через клик или меню настроек
+        function handleDirectMp3Select(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            processAndStoreExactMp3File(file);
+        }
+
+        // Обработка Drag & Drop файла на плашку
+        function handleAudioDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const dropZone = document.getElementById('audioDropZone');
+            if (dropZone) dropZone.classList.add('scale-[1.02]', 'border-pink-400');
+        }
+
+        function handleAudioDragLeave(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const dropZone = document.getElementById('audioDropZone');
+            if (dropZone) dropZone.classList.remove('scale-[1.02]', 'border-pink-400');
+        }
+
+        function handleAudioDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            handleAudioDragLeave(event);
+            const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+            if (!file) return;
+            processAndStoreExactMp3File(file);
+        }
+
+        // Чтение файла без изменений через FileReader и сохранение в localStorage
+        function processAndStoreExactMp3File(file) {
+            const audioEl = getFreddyAudioElement();
+            if (!audioEl) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const rawDataUrl = e.target.result;
+                audioEl.src = rawDataUrl;
+                audioEl.playbackRate = 1.0;
+                audioEl.defaultPlaybackRate = 1.0;
+                audioEl.volume = 1.0;
+                audioEl.load();
+
+                try {
+                    localStorage.setItem(STORAGE_AUDIO_KEY, rawDataUrl);
+                    localStorage.setItem(STORAGE_AUDIO_NAME_KEY, file.name);
+                } catch (storageErr) {
+                    // Если файл превышает лимит localStorage, он все равно работает в текущей сессии через Data URL
+                }
+
+                markAudioLoadedBadge(file.name);
+                showToast(`Оригинальный файл «${file.name}» загружен без изменений!`, '✅');
+                playOriginalFreddyAudio(false);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Воспроизведение ТОЧНОГО оригинального файла без Web Audio API синтезаторов и эффектов
+        function playOriginalFreddyAudio(showVisualFeedback = false) {
+            if (!state.soundEnabled) {
+                if (showVisualFeedback) {
+                    showToast('Звук выключен (нажмите 🔊 вверху справа)', '🔇');
+                }
+                return;
+            }
+
+            const audioEl = getFreddyAudioElement();
+            if (!audioEl) return;
+
+            try {
+                audioEl.pause();
+                audioEl.currentTime = 0;
+                audioEl.playbackRate = 1.0;
+                audioEl.defaultPlaybackRate = 1.0;
+                audioEl.volume = 1.0;
+                if ('preservesPitch' in audioEl) audioEl.preservesPitch = true;
+
+                const playPromise = audioEl.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        if (showVisualFeedback) {
+                            showToast('▶️ Играет оригинальный freddy-beatbox.mp3 (без изменений)', '🎵');
+                            const giftIcon = document.getElementById('giftEmojiIcon');
+                            if (giftIcon) {
+                                const rect = giftIcon.getBoundingClientRect();
+                                spawnCanvasExplosion(rect.left + rect.width / 2, rect.top + rect.height / 2, ['🐻', '🎤', '🎵', '🔥']);
+                            }
+                        }
+                    }).catch(() => {
+                        showToast('Нажмите на плашку сверху и выберите ваш файл freddy-beatbox.mp3!', '🎵');
+                    });
+                }
+            } catch (e) {
+                showToast('Выберите ваш файл freddy-beatbox.mp3 сверху для воспроизведения!', '🎵');
+            }
+        }
+
+        function stopOriginalFreddyAudio() {
+            const audioEl = getFreddyAudioElement();
+            if (!audioEl) return;
+            try {
+                audioEl.pause();
+                audioEl.currentTime = 0;
+                showToast('Воспроизведение остановлено', '⏹');
+            } catch (e) {}
+        }
+
+        // ================= ДВИЖОК ЧАСТИЦ МИНИ-ВЗРЫВА НА CANVAS =================
+        const expCanvas = document.getElementById('explosionCanvas');
+        const expCtx = expCanvas.getContext('2d');
+        let expParticles = [];
+        let expAnimId = null;
+
+        function resizeExplosionCanvas() {
+            expCanvas.width = window.innerWidth;
+            expCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeExplosionCanvas);
+        resizeExplosionCanvas();
+
+        function spawnCanvasExplosion(originX, originY, customEmojis) {
+            resizeExplosionCanvas();
+            const colors = ['#ff2a85', '#fbbf24', '#00f5d4', '#a855f7', '#38bdf8', '#ffffff', '#f97316'];
+            const emojis = customEmojis || ['🐻', '🎤', '😱', '💥', '🎉', '🔥', '🎂'];
+
+            // 1. Клубы дыма и ударного пара
+            for (let i = 0; i < 30; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 9;
+                expParticles.push({
+                    type: 'smoke',
+                    x: originX,
+                    y: originY,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    size: 18 + Math.random() * 34,
+                    alpha: 0.65,
+                    decay: 0.012 + Math.random() * 0.012,
+                    color: i % 2 === 0 ? 'rgba(255, 255, 255,' : 'rgba(255, 42, 133,'
+                });
+            }
+
+            // 2. Вылетающие мемные эмодзи (🐻, 🎤, 😱, 💥)
+            for (let i = 0; i < 26; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 4 + Math.random() * 15;
+                expParticles.push({
+                    type: 'emoji',
+                    text: emojis[Math.floor(Math.random() * emojis.length)],
+                    x: originX,
+                    y: originY,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 2.5,
+                    gravity: 0.18,
+                    drag: 0.96,
+                    size: 20 + Math.random() * 16,
+                    alpha: 1,
+                    decay: 0.011 + Math.random() * 0.01,
+                    rotation: (Math.random() - 0.5) * 1.2,
+                    rotSpeed: (Math.random() - 0.5) * 0.14
+                });
+            }
+
+            // 3. Яркие огненные искры и звезды
+            for (let i = 0; i < 75; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 5 + Math.random() * 22;
+                expParticles.push({
+                    type: i % 3 === 0 ? 'star' : 'spark',
+                    x: originX,
+                    y: originY,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 2,
+                    gravity: 0.25,
+                    drag: 0.96,
+                    size: 3 + Math.random() * 5.5,
+                    alpha: 1,
+                    decay: 0.014 + Math.random() * 0.014,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * Math.PI * 2,
+                    rotSpeed: (Math.random() - 0.5) * 0.22
+                });
+            }
+
+            if (expAnimId) cancelAnimationFrame(expAnimId);
+            animateExplosionParticles();
+        }
+
+        function animateExplosionParticles() {
+            expCtx.clearRect(0, 0, expCanvas.width, expCanvas.height);
+
+            for (let i = expParticles.length - 1; i >= 0; i--) {
+                const p = expParticles[i];
+
+                if (p.type === 'smoke') {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vx *= 0.94;
+                    p.vy *= 0.94;
+                    p.size += 1.2;
+                    p.alpha -= p.decay;
+
+                    if (p.alpha <= 0) {
+                        expParticles.splice(i, 1);
+                        continue;
+                    }
+
+                    expCtx.save();
+                    expCtx.beginPath();
+                    const grad = expCtx.createRadialGradient(p.x, p.y, 1, p.x, p.y, p.size);
+                    grad.addColorStop(0, `${p.color} ${p.alpha})`);
+                    grad.addColorStop(1, `${p.color} 0)`);
+                    expCtx.fillStyle = grad;
+                    expCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    expCtx.fill();
+                    expCtx.restore();
+                } else if (p.type === 'emoji') {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vx *= p.drag;
+                    p.vy *= p.drag;
+                    p.vy += p.gravity;
+                    p.alpha -= p.decay;
+                    p.rotation += p.rotSpeed;
+
+                    if (p.alpha <= 0) {
+                        expParticles.splice(i, 1);
+                        continue;
+                    }
+
+                    expCtx.save();
+                    expCtx.globalAlpha = Math.max(0, p.alpha);
+                    expCtx.translate(p.x, p.y);
+                    expCtx.rotate(p.rotation);
+                    expCtx.font = `${p.size}px sans-serif`;
+                    expCtx.textAlign = 'center';
+                    expCtx.textBaseline = 'middle';
+                    expCtx.fillText(p.text, 0, 0);
+                    expCtx.restore();
+                } else {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vx *= p.drag;
+                    p.vy *= p.drag;
+                    p.vy += p.gravity;
+                    p.alpha -= p.decay;
+                    p.rotation += p.rotSpeed;
+
+                    if (p.alpha <= 0) {
+                        expParticles.splice(i, 1);
+                        continue;
+                    }
+
+                    expCtx.save();
+                    expCtx.globalAlpha = Math.max(0, p.alpha);
+                    expCtx.translate(p.x, p.y);
+                    expCtx.rotate(p.rotation);
+                    expCtx.fillStyle = p.color;
+                    expCtx.shadowColor = p.color;
+                    expCtx.shadowBlur = 10;
+
+                    if (p.type === 'star') {
+                        expCtx.beginPath();
+                        for (let j = 0; j < 5; j++) {
+                            expCtx.lineTo(
+                                Math.cos((18 + j * 72) * Math.PI / 180) * p.size * 1.6,
+                                -Math.sin((18 + j * 72) * Math.PI / 180) * p.size * 1.6
+                            );
+                            expCtx.lineTo(
+                                Math.cos((54 + j * 72) * Math.PI / 180) * p.size * 0.7,
+                                -Math.sin((54 + j * 72) * Math.PI / 180) * p.size * 0.7
+                            );
+                        }
+                        expCtx.closePath();
+                        expCtx.fill();
+                    } else {
+                        expCtx.beginPath();
+                        expCtx.arc(0, 0, p.size, 0, Math.PI * 2);
+                        expCtx.fill();
+                    }
+                    expCtx.restore();
+                }
+            }
+
+            if (expParticles.length > 0) {
+                expAnimId = requestAnimationFrame(animateExplosionParticles);
+            } else {
+                expCtx.clearRect(0, 0, expCanvas.width, expCanvas.height);
+            }
+        }
+
+        // ================= ОТСЧЕТ ТАЙМЕРА И СКЛОНЕНИЕ СЛОВ =================
+        function pluralizeRu(num, words) {
+            const n = Math.abs(num) % 100;
+            const n1 = n % 10;
+            if (n > 10 && n < 20) return words[2];
+            if (n1 > 1 && n1 < 5) return words[1];
+            if (n1 === 1) return words[0];
+            return words[2];
+        }
+
+        function setDigitValue(elementId, newVal) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            if (el.textContent !== newVal) {
+                el.textContent = newVal;
+                const parentCard = el.parentElement;
+                if (parentCard) {
+                    parentCard.classList.add('digit-pop');
+                    setTimeout(() => parentCard.classList.remove('digit-pop'), 220);
+                }
+            }
+        }
+
+        function clearChargingEffects() {
+            const giftCard = document.getElementById('giftZoneCard');
+            const secCard = document.getElementById('secondsCard');
+            const giftIcon = document.getElementById('giftEmojiIcon');
+            if (giftCard) giftCard.classList.remove('charging-rumble');
+            if (secCard) secCard.classList.remove('charging-rumble');
+            if (giftIcon) giftIcon.textContent = '🎁';
+        }
+
+        function updateCountdownTick() {
+            if (state.explosionInProgress) return;
+
+            const now = Date.now();
+            const target = new Date(state.targetDate).getTime();
+            const diff = target - now;
+
+            if (diff <= 0) {
+                setDigitValue('daysVal', '00');
+                setDigitValue('hoursVal', '00');
+                setDigitValue('minutesVal', '00');
+                setDigitValue('secondsVal', '00');
+                document.getElementById('progressPercentText').textContent = '100%';
+                document.getElementById('progressBarFill').style.width = '100%';
+
+                if (!state.celebrationTriggered) {
+                    triggerExplosionSequence();
+                }
+                return;
+            }
+
+            const totalSeconds = Math.floor(diff / 1000);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            setDigitValue('daysVal', String(days).padStart(2, '0'));
+            setDigitValue('hoursVal', String(hours).padStart(2, '0'));
+            setDigitValue('minutesVal', String(minutes).padStart(2, '0'));
+            setDigitValue('secondsVal', String(seconds).padStart(2, '0'));
+
+            document.getElementById('daysLabel').textContent = pluralizeRu(days, ['День', 'Дня', 'Дней']);
+            document.getElementById('hoursLabel').textContent = pluralizeRu(hours, ['Час', 'Часа', 'Часов']);
+            document.getElementById('minutesLabel').textContent = pluralizeRu(minutes, ['Минута', 'Минуты', 'Минут']);
+            document.getElementById('secondsLabel').textContent = pluralizeRu(seconds, ['Секунда', 'Секунды', 'Секунд']);
+
+            // Предвзрывная детонация за 3 секунды до 00:00
+            if (totalSeconds <= 3 && totalSeconds > 0) {
+                const giftCard = document.getElementById('giftZoneCard');
+                const secCard = document.getElementById('secondsCard');
+                const giftIcon = document.getElementById('giftEmojiIcon');
+                giftCard.classList.add('charging-rumble');
+                secCard.classList.add('charging-rumble');
+                giftIcon.textContent = '💣';
+                document.getElementById('giftHintBubble').textContent = `⚠️ ДЕТОНАЦИЯ ЧЕРЕЗ ${totalSeconds} СЕК! ДЕРЖИСЬ! 🐻🎤`;
+            } else {
+                clearChargingEffects();
+            }
+        }
+
+        // ================= ЭПИЧНЫЙ МИНИ-ВЗРЫВ И ПЕРЕХОД К ТОРТУ =================
+        function triggerExplosionSequence() {
+            if (state.explosionInProgress) return;
+            state.explosionInProgress = true;
+            state.celebrationTriggered = true;
+
+            // Если мы на экране праздника, сначала вернемся для демонстрации взрыва
+            document.getElementById('birthdayCelebrationScreen').classList.add('hidden');
+            document.getElementById('countdownScreen').classList.remove('hidden');
+
+            setDigitValue('daysVal', '00');
+            setDigitValue('hoursVal', '00');
+            setDigitValue('minutesVal', '00');
+            setDigitValue('secondsVal', '00');
+
+            const giftCard = document.getElementById('giftZoneCard');
+            const secCard = document.getElementById('secondsCard');
+            const giftIcon = document.getElementById('giftEmojiIcon');
+            giftCard.classList.add('charging-rumble');
+            secCard.classList.add('charging-rumble');
+            giftIcon.textContent = '💣';
+
+            setTimeout(() => {
+                clearChargingEffects();
+
+                const rect = giftIcon.getBoundingClientRect();
+                const centerX = rect.width ? rect.left + rect.width / 2 : window.innerWidth / 2;
+                const centerY = rect.height ? rect.top + rect.height / 2 : window.innerHeight / 2;
+
+                // Запускаем ТОЧНЫЙ оригинальный файл freddy-beatbox.mp3 без изменений!
+                playOriginalFreddyAudio(false);
+
+                if (navigator.vibrate) navigator.vibrate([160, 50, 280]);
+
+                document.body.classList.remove('screen-shake-active');
+                void document.body.offsetWidth;
+                document.body.classList.add('screen-shake-active');
+
+                const burstText = 'С ДНЁМ РОЖДЕНИЯ!! 🐻🎤💥';
+
+                const overlay = document.getElementById('explosionOverlay');
+                overlay.innerHTML = `
+                    <div class="fixed inset-0 bg-white flash-screen"></div>
+                    <div class="shockwave-ring" style="left: ${centerX - 90}px; top: ${centerY - 90}px;"></div>
+                    <div class="fixed z-50 text-xl sm:text-3xl font-black text-amber-300 drop-shadow-[0_0_24px_rgba(255,42,133,1)] animate-bounce pointer-events-none text-center px-3"
+                         style="left: 50%; top: ${Math.max(70, centerY - 90)}px; transform: translateX(-50%);">
+                        ${burstText}
+                    </div>
+                `;
+
+                document.querySelectorAll('.shatter-piece').forEach(el => {
+                    el.classList.add('shatter-active');
+                });
+
+                spawnCanvasExplosion(centerX, centerY);
+
+                confetti({
+                    particleCount: 130,
+                    spread: 360,
+                    startVelocity: 46,
+                    origin: {
+                        x: centerX / window.innerWidth,
+                        y: centerY / window.innerHeight
+                    },
+                    colors: ['#ff2a85', '#fbbf24', '#00f5d4', '#a855f7', '#ffffff']
+                });
+
+                setTimeout(() => {
+                    document.getElementById('countdownScreen').classList.add('hidden');
+                    const celScreen = document.getElementById('birthdayCelebrationScreen');
+                    celScreen.classList.remove('hidden', 'celebration-reveal-anim');
+                    celScreen.classList.add('flex');
+                    void celScreen.offsetWidth;
+                    celScreen.classList.add('celebration-reveal-anim');
+
+                    document.querySelectorAll('.shatter-piece').forEach(el => {
+                        el.classList.remove('shatter-active');
+                    });
+
+                    resetCandles();
+                    launchMegaConfetti();
+                    state.explosionInProgress = false;
+
+                    setTimeout(() => {
+                        overlay.innerHTML = '';
+                        document.body.classList.remove('screen-shake-active');
+                    }, 950);
+                }, 620);
+            }, 320);
+        }
+
+        function returnToCountdown() {
+            document.getElementById('birthdayCelebrationScreen').classList.add('hidden');
+            document.getElementById('birthdayCelebrationScreen').classList.remove('flex');
+            document.getElementById('countdownScreen').classList.remove('hidden');
+
+            // Если время уже прошло, добавим 15 минут, чтобы таймер снова тикал
+            if (new Date(state.targetDate).getTime() <= Date.now()) {
+                state.targetDate = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+            }
+            state.celebrationTriggered = false;
+            applyStateToUI();
+        }
+
+        function setQuickCountdownSeconds(sec) {
+            state.targetDate = new Date(Date.now() + sec * 1000 + 200).toISOString();
+            state.celebrationTriggered = false;
+            document.getElementById('birthdayCelebrationScreen').classList.add('hidden');
+            document.getElementById('birthdayCelebrationScreen').classList.remove('flex');
+            document.getElementById('countdownScreen').classList.remove('hidden');
+            applyStateToUI();
+            showToast(`Финальный отсчет: ${sec} секунд до взрыва!`, '⏱');
+        }
+
+        // ================= ИНТЕРАКТИВНЫЕ ДЕЙСТВИЯ (ПОДАРОК, САЛЮТ, СВЕЧИ) =================
+        const giftTeasers = [
+            '🐻 Внутри сидит Фредди с оригинальным треком freddy-beatbox.mp3!',
+            '🎁 Подарок заряжен на 100% позитива и ждёт 00:00!',
+            '🔥 Слышишь этот бит? Это приближается твой лучший год!',
+            '🚀 Спойлер: внутри то, что поднимет настроение в космос!',
+            '💣 Тик-так... На 00:00 эта коробка устроит мини-взрыв!'
+        ];
+
+        function shakeGiftBox() {
+            state.shakeCount++;
+            document.getElementById('shakeCounter').textContent = state.shakeCount;
+
+            const icon = document.getElementById('giftEmojiIcon');
+            icon.classList.remove('shake-active');
+            void icon.offsetWidth;
+            icon.classList.add('shake-active');
+
+            const hintEl = document.getElementById('giftHintBubble');
+            hintEl.textContent = giftTeasers[state.shakeCount % giftTeasers.length];
+
+            const rect = icon.getBoundingClientRect();
+            confetti({
+                particleCount: 22,
+                spread: 65,
+                origin: {
+                    x: (rect.left + rect.width / 2) / window.innerWidth,
+                    y: (rect.top + rect.height / 2) / window.innerHeight
+                }
+            });
+        }
+
+        function launchFireworksManual() {
+            confetti({
+                particleCount: 70,
+                angle: 60,
+                spread: 65,
+                origin: { x: 0, y: 0.75 }
+            });
+            confetti({
+                particleCount: 70,
+                angle: 120,
+                spread: 65,
+                origin: { x: 1, y: 0.75 }
+            });
+        }
+
+        function launchMegaConfetti() {
+            const end = Date.now() + 1800;
+            (function frame() {
+                confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 }
+                });
+                confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 }
+                });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            })();
+        }
+
+        function blowOutCandle(index) {
+            if (state.candlesBlown[index]) return;
+            state.candlesBlown[index] = true;
+
+            const flame = document.getElementById(`flame-${index}`);
+            if (flame) {
+                flame.textContent = '💨';
+                flame.classList.remove('candle-flame');
+                flame.style.opacity = '0.45';
+            }
+
+            const remaining = state.candlesBlown.filter(blown => !blown).length;
+            const badge = document.getElementById('candlesStatusBadge');
+
+            if (remaining === 0) {
+                badge.textContent = '✨ Все свечи задуты! Желание сбудется!';
+                showToast('Ура! Все свечи задуты — желание исполнится! 🎂🎉', '🌟');
+                playOriginalFreddyAudio(false);
+                launchMegaConfetti();
+            } else {
+                badge.textContent = `Горит свечей: ${remaining} / 5`;
+            }
+        }
+
+        function resetCandles() {
+            state.candlesBlown = [false, false, false, false, false];
+            for (let i = 0; i < 5; i++) {
+                const flame = document.getElementById(`flame-${i}`);
+                if (flame) {
+                    flame.textContent = '🔥';
+                    flame.classList.add('candle-flame');
+                    flame.style.opacity = '1';
+                }
+            }
+            document.getElementById('candlesStatusBadge').textContent = 'Горит свечей: 5 / 5';
+        }
+
+        // ================= НАСТРОЙКИ, URL-ПАРАМЕТРЫ И ШЕРИНГ В TELEGRAM =================
+        function selectSoundPreset(presetName) {
+            state.soundPreset = presetName || 'freddy_original';
+            document.querySelectorAll('.sound-preset-btn').forEach(btn => {
+                btn.classList.remove('border-pink-500', 'bg-white/20');
+                btn.classList.add('border-white/20', 'bg-black/30');
+            });
+            const activeBtn = document.getElementById(`soundPresetBtn-${presetName}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('border-white/20', 'bg-black/30');
+                activeBtn.classList.add('border-pink-500', 'bg-white/20');
+            }
+            playOriginalFreddyAudio(true);
+        }
+
+        function selectTheme(themeName) {
+            state.theme = themeName;
+            document.body.setAttribute('data-theme', themeName);
+            highlightSelectedThemeBtn(themeName);
+        }
+
+        function highlightSelectedThemeBtn(themeName) {
+            document.querySelectorAll('.theme-option-btn').forEach(btn => {
+                btn.classList.remove('border-pink-500', 'bg-white/20');
+                btn.classList.add('border-white/20', 'bg-black/30');
+            });
+            const activeBtn = document.getElementById(`themeBtn-${themeName}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('border-white/20', 'bg-black/30');
+                activeBtn.classList.add('border-pink-500', 'bg-white/20');
+            }
+        }
+
+        function toggleSoundMute() {
+            state.soundEnabled = !state.soundEnabled;
+            if (!state.soundEnabled) {
+                stopOriginalFreddyAudio();
+            }
+            updateSoundBtnUI();
+            showToast(state.soundEnabled ? 'Звук включен 🔊' : 'Звук выключен 🔇', state.soundEnabled ? '🔊' : '🔇');
+        }
+
+        function updateSoundBtnUI() {
+            const btn = document.getElementById('soundToggleBtn');
+            if (btn) btn.textContent = state.soundEnabled ? '🔊' : '🔇';
+        }
+
+        function toggleSettingsModal(show) {
+            const modal = document.getElementById('settingsModal');
+            if (show) modal.classList.remove('hidden');
+            else modal.classList.add('hidden');
+        }
+
+        function setQuickModalTime(secondsFromNow) {
+            const target = new Date(Date.now() + secondsFromNow * 1000);
+            const localIso = new Date(target.getTime() - (target.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            document.getElementById('inputDate').value = localIso;
+        }
+
+        function saveSettingsFromModal() {
+            const nameVal = document.getElementById('inputName').value.trim();
+            const dateVal = document.getElementById('inputDate').value;
+            const msgVal = document.getElementById('inputMessage').value.trim();
+            const audioUrlVal = document.getElementById('inputAudioUrl').value.trim();
+
+            if (nameVal) state.name = nameVal;
+            if (dateVal) {
+                const parsed = new Date(dateVal);
+                if (!isNaN(parsed.getTime())) {
+                    state.targetDate = parsed.toISOString();
+                    state.celebrationTriggered = false;
+                }
+            }
+            if (msgVal) state.message = msgVal;
+            if (audioUrlVal) {
+                state.audioUrl = audioUrlVal;
+                const audioEl = getFreddyAudioElement();
+                if (audioEl) {
+                    audioEl.src = audioUrlVal;
+                    audioEl.load();
+                }
+                markAudioLoadedBadge(audioUrlVal.split('/').pop() || 'freddy-beatbox.mp3');
+            }
+
+            // Безопасное обновление адресной строки (с защитой от SecurityError в blob:)
+            try {
+                if (window.location.protocol !== 'blob:') {
+                    const newUrl = generateShareUrl();
+                    window.history.replaceState({}, '', newUrl);
+                }
+            } catch (e) {}
+
+            applyStateToUI();
+            toggleSettingsModal(false);
+            showToast('Настройки сохранены! Можно отправлять другу 🎁', '✅');
+        }
+
+        function generateShareUrl() {
+            let baseUrl = 'https://t.me/your_bot/birthday_app';
+            try {
+                if (window.location.protocol.startsWith('http')) {
+                    baseUrl = window.location.origin + window.location.pathname;
+                }
+            } catch (e) {}
+
+            const params = new URLSearchParams();
+            params.set('name', state.name);
+            params.set('date', state.targetDate);
+            params.set('theme', state.theme);
+            params.set('msg', state.message);
+            if (state.audioUrl) {
+                params.set('audio', state.audioUrl);
+            }
+            return `${baseUrl}?${params.toString()}`;
+        }
+
+        function loadFromUrlParams() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                if (params.has('name')) state.name = params.get('name').trim() || state.name;
+                if (params.has('date')) {
+                    const d = new Date(params.get('date'));
+                    if (!isNaN(d.getTime())) state.targetDate = d.toISOString();
+                }
+                if (params.has('msg')) state.message = params.get('msg').trim() || state.message;
+                if (params.has('theme')) {
+                    const t = params.get('theme');
+                    if (['neon', 'space', 'gold', 'cyberpunk'].includes(t)) state.theme = t;
+                }
+                if (params.has('audio')) {
+                    state.audioUrl = params.get('audio').trim();
+                }
+            } catch (e) {}
+            applyStateToUI();
+        }
+
+        function applyStateToUI() {
+            document.body.setAttribute('data-theme', state.theme);
+            document.getElementById('displayRecipientName').textContent = state.name;
+            document.getElementById('celebrationName').textContent = state.name;
+            document.getElementById('secretMessageDisplay').textContent = state.message;
+
+            const d = new Date(state.targetDate);
+            const formatter = new Intl.DateTimeFormat('ru-RU', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('targetDateFormatted').textContent = `Дата Х: ${formatter.format(d)}`;
+
+            document.getElementById('inputName').value = state.name;
+            const localIso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            document.getElementById('inputDate').value = localIso;
+            document.getElementById('inputMessage').value = state.message;
+            const audioUrlInput = document.getElementById('inputAudioUrl');
+            if (audioUrlInput) audioUrlInput.value = state.audioUrl;
+
+            highlightSelectedThemeBtn(state.theme);
+            updateCountdownTick();
+        }
+
+        function shareToTelegram() {
+            const url = generateShareUrl();
+            const text = `🎁 ${state.name}, для тебя запущен секретный таймер с сюрпризом на День Рождения! Открой и нажми на подарок:`;
+            const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+            window.open(tgShareUrl, '_blank');
+        }
+
+        function copySurpriseLink() {
+            const url = generateShareUrl();
+            const tempInput = document.createElement('textarea');
+            tempInput.value = url;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                showToast('Ссылка на сюрприз скопирована в буфер!', '🔗');
+                const btnLabel = document.getElementById('copyLinkBtnText');
+                btnLabel.textContent = 'Скопировано! ✅';
+                setTimeout(() => { btnLabel.textContent = 'Скопировать ссылку'; }, 2000);
+            } catch (e) {
+                showToast('Не удалось скопировать ссылку', '⚠️');
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        let toastTimeout = null;
+        function showToast(message, icon = '✨') {
+            const toast = document.getElementById('toastNotification');
+            document.getElementById('toastText').textContent = message;
+            document.getElementById('toastIcon').textContent = icon;
+            toast.classList.remove('opacity-0', '-translate-y-3');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', '-translate-y-3');
+            }, 2600);
+        }
+
+        // Старт при загрузке
+        window.onload = function () {
+            // Инициализация Telegram Web App
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.expand(); // Автоматически разворачиваем виджет на всю высоту экрана
+                tg.ready();  // Сообщаем Telegram, что приложение полностью загружено и готово к работе
+            }
+
+            loadFromUrlParams();
+            initOriginalAudioSource();
+            setInterval(updateCountdownTick, 1000);
+        };
+    </script>
+</body>
+</html>
